@@ -81,39 +81,45 @@ const Login = () => {
   // Show loading spinner if auth is loading
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full bg-primary-500/20 blur-[120px] animate-pulse-slow"></div>
+        <div className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full bg-common-purple-500/20 blur-[120px] animate-pulse-slow" style={{animationDelay: '1s'}}></div>
+      </div>
+
+      <div className="max-w-md w-full space-y-8 z-10">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-            <FaUser className="h-6 w-6 text-blue-600" />
+          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 shadow-lg shadow-primary-500/30 mb-6">
+            <FaUser className="h-8 w-8 text-white" />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+            Welcome Back
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Welcome back to AI Call Intelligence
+          <p className="text-slate-600 dark:text-slate-400">
+            Sign in to access your intelligence dashboard
           </p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white py-8 px-6 shadow-lg rounded-xl sm:px-10">
+        <div className="card p-8 backdrop-blur-xl bg-white/70 dark:bg-slate-900/60 border border-white/20 dark:border-white/10 shadow-2xl">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                 Email Address
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaUser className="h-5 w-5 text-gray-400" />
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors group-focus-within:text-primary-500">
+                  <FaUser className="h-5 w-5 text-gray-400 group-focus-within:text-primary-500" />
                 </div>
                 <input
                   id="email"
@@ -123,8 +129,8 @@ const Login = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                  placeholder="Enter your email"
+                  className="input-field pl-10"
+                  placeholder="name@company.com"
                   disabled={isLoading}
                 />
               </div>
@@ -132,12 +138,12 @@ const Login = () => {
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                 Password
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaLock className="h-5 w-5 text-gray-400" />
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors group-focus-within:text-primary-500">
+                  <FaLock className="h-5 w-5 text-gray-400 group-focus-within:text-primary-500" />
                 </div>
                 <input
                   id="password"
@@ -147,7 +153,7 @@ const Login = () => {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                  className="input-field pl-10 pr-12"
                   placeholder="Enter your password"
                   disabled={isLoading}
                 />
@@ -158,9 +164,9 @@ const Login = () => {
                   disabled={isLoading}
                 >
                   {showPassword ? (
-                    <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <FaEyeSlash className="h-5 w-5 text-gray-400 hover:text-primary-500 transition-colors" />
                   ) : (
-                    <FaEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <FaEye className="h-5 w-5 text-gray-400 hover:text-primary-500 transition-colors" />
                   )}
                 </button>
               </div>
@@ -173,27 +179,27 @@ const Login = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded bg-white/50 dark:bg-slate-800"
                   disabled={isLoading}
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 dark:text-slate-400">
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <a href="#" className="text-blue-600 hover:text-blue-500 font-medium">
-                  Forgot your password?
+                <a href="#" className="text-primary-600 dark:text-primary-400 hover:text-primary-500 font-medium transition-colors">
+                  Forgot password?
                 </a>
               </div>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
+              <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg">
                 <div className="flex">
                   <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
                   </div>
                 </div>
               </div>
@@ -204,10 +210,10 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white transition duration-200 ${
+                className={`group relative w-full flex justify-center py-3 px-4 text-sm font-bold tracking-wide rounded-xl text-white transition-all duration-300 transform active:scale-[0.98] ${
                   isLoading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    ? 'bg-slate-400 cursor-not-allowed'
+                    : 'btn-primary shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50'
                 }`}
               >
                 {isLoading ? (
@@ -222,14 +228,14 @@ const Login = () => {
             </div>
 
             {/* Sign Up Link */}
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
+            <div className="text-center mt-6">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 Don't have an account?{' '}
                 <Link
                   to="/register"
-                  className="text-blue-600 hover:text-blue-500 font-medium transition duration-200"
+                  className="text-primary-600 dark:text-primary-400 hover:text-primary-500 font-bold transition-colors"
                 >
-                  Sign up here
+                  Create Account
                 </Link>
               </p>
             </div>
@@ -238,13 +244,13 @@ const Login = () => {
 
         {/* Additional Info */}
         <div className="text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-slate-500 dark:text-slate-500">
             By signing in, you agree to our{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-500">
+            <a href="#" className="text-slate-600 dark:text-slate-400 hover:text-primary-500 transition-colors">
               Terms of Service
             </a>{' '}
             and{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-500">
+            <a href="#" className="text-slate-600 dark:text-slate-400 hover:text-primary-500 transition-colors">
               Privacy Policy
             </a>
           </p>

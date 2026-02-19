@@ -101,7 +101,8 @@ const callSchema = new mongoose.Schema({
 }, {
   timestamps: true, // Adds createdAt and updatedAt
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
+  suppressReservedKeysWarning: true
 });
 
 // Transcription Schema
@@ -649,8 +650,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-userSchema.index({ email: 1 });
-userSchema.index({ userId: 1 });
 userSchema.index({ status: 1 });
 userSchema.index({ createdAt: -1 });
 

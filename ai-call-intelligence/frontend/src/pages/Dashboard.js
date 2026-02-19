@@ -98,27 +98,27 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 text-glow">
             Dashboard
           </h1>
-          <p className="mt-1 text-gray-600 dark:text-gray-400">
+          <p className="text-slate-600 dark:text-slate-400">
             Welcome back! Here's an overview of your conversation analytics.
           </p>
         </div>
         
         <Link 
           to="/upload" 
-          className="mt-4 sm:mt-0 btn-primary inline-flex items-center space-x-2"
+          className="mt-4 sm:mt-0 btn-primary inline-flex items-center space-x-2 shadow-lg shadow-primary-500/20"
         >
           <Upload className="w-4 h-4" />
           <span>Upload New Audio</span>
@@ -127,32 +127,32 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card p-6">
+        <div className="card p-6 border-l-4 border-l-primary-500">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Phone className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+            <div className="flex-shrink-0 p-3 rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400">
+              <Phone className="w-6 h-6" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Total Calls
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {stats.totalCalls}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card p-6 border-l-4 border-l-cyan-500">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Clock className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+            <div className="flex-shrink-0 p-3 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+              <Clock className="w-6 h-6" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Total Duration
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {stats.totalDuration >= 60 ? 
                   `${Math.floor(stats.totalDuration / 60)}h ${stats.totalDuration % 60}m` : 
                   `${stats.totalDuration}m`
@@ -162,32 +162,32 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card p-6 border-l-4 border-l-purple-500">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <TrendingUp className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+            <div className="flex-shrink-0 p-3 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+              <TrendingUp className="w-6 h-6" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Avg. Sentiment
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {stats.averageSentiment}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card p-6 border-l-4 border-l-pink-500">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Activity className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+            <div className="flex-shrink-0 p-3 rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-400">
+              <Activity className="w-6 h-6" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Pending Actions
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {stats.pendingActions}
               </p>
             </div>
@@ -198,12 +198,12 @@ const Dashboard = () => {
       {/* Recent Calls */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
             Recent Calls
           </h2>
           <Link 
             to="/calls"
-            className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium inline-flex items-center space-x-1"
+            className="text-primary-600 dark:text-primary-400 hover:text-primary-500 font-medium inline-flex items-center space-x-1 transition-colors"
           >
             <span>View all</span>
             <ArrowRight className="w-4 h-4" />
@@ -211,7 +211,7 @@ const Dashboard = () => {
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg mb-6">
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-r-lg mb-6">
             <p className="text-red-700 dark:text-red-300">
               Error loading calls: {error}
             </p>
@@ -220,11 +220,13 @@ const Dashboard = () => {
 
         {recentCalls.length === 0 ? (
           <div className="text-center py-12">
-            <FileAudio className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileAudio className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
               No calls yet
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-sm mx-auto">
               Upload your first audio file to get started with conversation analytics.
             </p>
             <Link to="/upload" className="btn-primary">
@@ -232,42 +234,42 @@ const Dashboard = () => {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {recentCalls.map((call) => (
               <Link
                 key={call.id}
                 to={`/calls/${call.id}`}
-                className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-300 dark:hover:border-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
+                className="group block p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 hover:border-primary-500/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
-                        <FileAudio className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                      <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <FileAudio className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                       </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-primary-500 transition-colors">
                         {call.filename}
                       </p>
                       {call.summary && call.summary.length > 0 && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                        <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
                           {call.summary[0]}
                         </p>
                       )}
-                      <div className="flex items-center space-x-4 mt-1">
-                        <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-500">
+                      <div className="flex items-center space-x-4 mt-2">
+                        <div className="flex items-center space-x-1 text-xs text-slate-400">
                           <Calendar className="w-3 h-3" />
                           <span>{formatTimeAgo(call.uploadedAt)}</span>
                         </div>
                         {call.sentiment && typeof call.sentiment === 'string' && (
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
                             call.sentiment.toLowerCase().includes('positive')
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
                               : call.sentiment.toLowerCase().includes('negative')
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20'
                           }`}>
                             {call.sentiment}
                           </span>
@@ -276,7 +278,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                   
-                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                  <ArrowRight className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-primary-500 transform group-hover:translate-x-1 transition-all" />
                 </div>
               </Link>
             ))}
@@ -286,40 +288,52 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <div className="card p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
           Quick Actions
         </h2>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Link 
             to="/upload"
-            className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors duration-200 text-center"
+            className="group p-6 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-300 text-center"
           >
-            <Upload className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Upload Audio</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            <div className="w-14 h-14 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 transition-all duration-300">
+              <Upload className="w-7 h-7 text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
+            </div>
+            <p className="font-semibold text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+              Upload Audio
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Drag & drop or select files
             </p>
           </Link>
           
           <Link 
             to="/calls"
-            className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors duration-200 text-center"
+            className="group p-6 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-300 text-center"
           >
-            <Phone className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Browse Calls</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            <div className="w-14 h-14 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 transition-all duration-300">
+              <Phone className="w-7 h-7 text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
+            </div>
+            <p className="font-semibold text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+              Browse Calls
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               View past conversations
             </p>
           </Link>
           
           <Link 
             to="/settings"
-            className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors duration-200 text-center"
+            className="group p-6 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-300 text-center"
           >
-            <TrendingUp className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Analytics</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            <div className="w-14 h-14 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 transition-all duration-300">
+              <TrendingUp className="w-7 h-7 text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
+            </div>
+            <p className="font-semibold text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+              Analytics
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               View insights & trends
             </p>
           </Link>

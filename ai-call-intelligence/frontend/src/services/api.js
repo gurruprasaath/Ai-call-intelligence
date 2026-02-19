@@ -1,8 +1,12 @@
 import axios from 'axios';
 
 // Create axios instance with base configuration
+// Create axios instance with base configuration
+const RAW_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_BASE_URL = RAW_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${API_BASE_URL}/api`,
   timeout: 30000, // 30 seconds for file uploads
   headers: {
     'Content-Type': 'application/json',
@@ -13,13 +17,13 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    
+
     // Automatically add auth token if available
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
@@ -36,26 +40,26 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('❌ API Response Error:', error.response?.data || error.message);
-    
+
     // Handle common errors
     if (error.response?.status === 413) {
       throw new Error('File size too large. Maximum size is 50MB.');
     }
-    
+
     if (error.response?.status >= 500) {
       throw new Error('Server error. Please try again later.');
     }
-    
+
     if (error.code === 'ECONNABORTED') {
       throw new Error('Request timeout. Please try again.');
     }
-    
+
     throw error;
   }
 );
 
 export const apiService = {
-  
+
   /**
    * Health check endpoint
    */
@@ -79,9 +83,9 @@ export const apiService = {
       // Step 1: Determine upload strategy
       const fileSize = audioFile.size;
       const useChunkedUpload = fileSize > 5 * 1024 * 1024; // Use chunks for files > 5MB
-      
+
       let uploadResponse;
-      
+
       if (useChunkedUpload) {
         // Use chunked upload for large files
         uploadResponse = await this.uploadChunked(audioFile, onProgress);
@@ -91,14 +95,14 @@ export const apiService = {
       }
 
       const { callId } = uploadResponse;
-      
+
       // Step 2: Poll for processing status
       return await this.pollProcessingStatus(callId, (progress, message) => {
         // Processing starts after upload (at 95%)
         const adjustedProgress = 95 + (progress * 0.05);
         onProgress(Math.min(adjustedProgress, 100), message);
       });
-      
+
     } catch (error) {
       if (error.response?.data?.error) {
         throw new Error(error.response.data.error);
@@ -116,13 +120,13 @@ export const apiService = {
   async uploadChunked(audioFile, onProgress) {
     const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
     const chunks = [];
-    
+
     // Create chunks
     for (let start = 0; start < audioFile.size; start += CHUNK_SIZE) {
       const chunk = audioFile.slice(start, start + CHUNK_SIZE);
       chunks.push(chunk);
     }
-    
+
     // Initialize upload
     const initResponse = await api.post('/upload/init', {
       fileId: Date.now().toString(36),
@@ -131,38 +135,38 @@ export const apiService = {
       totalChunks: chunks.length,
       mimeType: audioFile.type
     });
-    
+
     const { uploadId } = initResponse.data;
-    
+
     // Upload chunks with progress tracking
     const uploadPromises = chunks.map(async (chunk, index) => {
       const formData = new FormData();
       formData.append('chunk', chunk);
       formData.append('chunkIndex', index.toString());
       formData.append('uploadId', uploadId);
-      
+
       const response = await api.post('/upload/chunk', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 30000
       });
-      
+
       // Update progress
       const progress = ((index + 1) / chunks.length) * 90; // 90% for upload
       onProgress(progress, `Uploading chunk ${index + 1}/${chunks.length}...`);
-      
+
       return response.data;
     });
-    
+
     // Wait for all chunks to upload
     await Promise.all(uploadPromises);
-    
+
     // Finalize upload
     onProgress(95, 'Finalizing upload...');
     const finalizeResponse = await api.post('/upload/finalize', {
       uploadId,
       fileId: initResponse.data.fileId
     });
-    
+
     return finalizeResponse.data;
   },
 

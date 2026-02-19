@@ -23,6 +23,7 @@ const { optionalAuth, authenticateToken } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const DB_REQUIRED = !['false', '0', 'no'].includes((process.env.DB_REQUIRED || '').toLowerCase());
 
 // Middleware
 app.use(cors());
@@ -45,12 +46,12 @@ const chunkStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     // Use a temporary chunks directory, we'll organize by uploadId later
     const tempChunkDir = path.join('uploads', 'chunks', 'temp');
-    
+
     // Create directory if it doesn't exist
     if (!fs.existsSync(tempChunkDir)) {
       fs.mkdirSync(tempChunkDir, { recursive: true });
     }
-    
+
     cb(null, tempChunkDir);
   },
   filename: function (req, file, cb) {
@@ -65,7 +66,7 @@ const fileFilter = (req, file, cb) => {
   const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/wave', 'audio/ogg', 'audio/m4a'];
   const allowedExtensions = ['.mp3', '.wav', '.ogg', '.m4a'];
   const fileExtension = path.extname(file.originalname).toLowerCase();
-  
+
   if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
     cb(null, true);
   } else {
@@ -73,7 +74,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
@@ -81,7 +82,7 @@ const upload = multer({
   }
 });
 
-const chunkUpload = multer({ 
+const chunkUpload = multer({
   storage: chunkStorage,
   limits: {
     fileSize: 2 * 1024 * 1024 // 2MB per chunk
@@ -99,11 +100,33 @@ async function initializeDatabase() {
     console.log('✅ Database initialization complete');
   } catch (error) {
     console.error('❌ Database initialization failed:', error.message);
-    process.exit(1);
+    if (DB_REQUIRED) {
+      process.exit(1);
+    }
+    console.warn('⚠️ DB_REQUIRED=false so the server will continue without a database connection.');
   }
 }
 
 // Routes
+
+// Middleware to check database connection status for API routes
+app.use('/api', (req, res, next) => {
+  // Allow health check to pass through even if DB is down
+  if (req.path === '/health') {
+    return next();
+  }
+
+  // If DB is not connected, return 503 Service Unavailable
+  // We check this regardless of DB_REQUIRED to prevent crashing
+  if (!databaseConfig.isConnected) {
+    return res.status(503).json({
+      status: 'error',
+      message: 'Service Unavailable: Database connection is lost',
+      retryAfter: 30
+    });
+  }
+  next();
+});
 
 // Authentication Routes
 app.post('/api/auth/register', authController.register);
@@ -116,9 +139,9 @@ app.get('/api/health', async (req, res) => {
   try {
     const dbHealth = await databaseConfig.healthCheck();
     const dbServiceHealth = await databaseService.healthCheck();
-    
-    res.json({ 
-      status: 'OK', 
+
+    res.json({
+      status: 'OK',
       message: 'AI Call Intelligence API is running',
       database: {
         connection: dbHealth,
@@ -138,12 +161,12 @@ app.get('/api/health', async (req, res) => {
 // Upload and process audio file (with MongoDB integration) - Async Processing
 app.post('/api/upload', optionalAuth, upload.single('audio'), async (req, res) => {
   let call = null;
-  
+
   try {
     console.log('📤 Upload endpoint hit');
     console.log('📋 Request file:', req.file ? 'Present' : 'Missing');
     console.log('🔐 User auth:', req.user ? 'Authenticated' : 'Anonymous');
-    
+
     if (!req.file) {
       console.log('❌ No file in request');
       return res.status(400).json({ error: 'No audio file uploaded' });
@@ -161,7 +184,7 @@ app.post('/api/upload', optionalAuth, upload.single('audio'), async (req, res) =
     const userEmail = req.user?.email || req.body.userEmail || req.headers['user-email'] || process.env.DEFAULT_USER_EMAIL;
     const userName = req.user?.fullName || req.body.userName || req.headers['user-name'] || 'User';
     const userId = req.user?.userId || null;
-    
+
     console.log('👤 User info - Email:', userEmail, 'Name:', userName, 'ID:', userId);
 
     // Step 1: Create call record in database
@@ -220,13 +243,13 @@ app.post('/api/upload', optionalAuth, upload.single('audio'), async (req, res) =
       name: error.name,
       code: error.code
     });
-    
+
     // Update call status to failed if call was created
     if (call) {
       try {
         await databaseService.updateCallStatus(
-          call._id, 
-          'failed', 
+          call._id,
+          'failed',
           'none',
           { message: error.message, details: error.stack }
         );
@@ -234,10 +257,10 @@ app.post('/api/upload', optionalAuth, upload.single('audio'), async (req, res) =
         console.error('❌ Error updating call status:', dbError);
       }
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Failed to process audio file',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -327,19 +350,19 @@ app.post('/api/mobile/upload', optionalAuth, upload.single('audio'), async (req,
 async function processAudioAsync(callId, filePath) {
   try {
     console.log(`🔄 Starting async processing for call: ${callId}`);
-    
+
     // Step 0: Get call record to access user information (no user filtering for internal processing)
     const callRecord = await databaseService.getCallById(callId, true, null);
     const userEmail = callRecord?.userEmail || process.env.DEFAULT_USER_EMAIL;
     const originalFileName = callRecord?.originalName || 'Audio File';
-    
+
     // Step 1: Update status to transcribing
     await databaseService.updateCallStatus(callId, 'processing', 'transcribing');
 
     // Step 2: Transcribe audio using Groq Whisper
     console.log('🎤 Starting transcription...');
     const transcriptionResult = await transcriptionService.transcribeAudio(filePath);
-    
+
     // Save transcription to database
     const transcription = await databaseService.createTranscription({
       callId: callId,
@@ -380,7 +403,7 @@ async function processAudioAsync(callId, filePath) {
     // Step 5: Analyze conversation using Groq Llama + SBERT Classification
     console.log('🧠 Starting analysis and classification...');
     const analysisResult = await analysisService.analyzeConversation(transcriptionResult.text);
-    
+
     // Save analysis to database
     const analysis = await databaseService.createAnalysis({
       callId: callId,
@@ -441,14 +464,14 @@ async function processAudioAsync(callId, filePath) {
       // Use userEmail as userId if userId is not available
       const taskUserId = callRecord.userId || callRecord.userEmail || 'test-user';
       console.log('📝 Using userId for task creation:', taskUserId);
-      
+
       const extractedTasks = await taskExtractionService.extractTasksFromCall(
         callId,
         transcriptionResult.text,
         analysisResult,
         taskUserId
       );
-      
+
       if (extractedTasks && extractedTasks.length > 0) {
         console.log(`✅ Task extraction completed: ${extractedTasks.length} tasks created`);
       } else {
@@ -461,22 +484,22 @@ async function processAudioAsync(callId, filePath) {
 
     // Step 8: Update call status to completed
     await databaseService.updateCallStatus(callId, 'completed', 'complete');
-    
+
     // Step 9: Send final completion notification to user's email
     setImmediate(() => {
       notificationService.sendFinalProcessingNotification(callId, userEmail);
     });
-    
+
     console.log(`✅ Processing completed for call: ${callId}`);
 
   } catch (error) {
     console.error('❌ Error in async processing:', error);
-    
+
     // Update call status to failed
     try {
       await databaseService.updateCallStatus(
-        callId, 
-        'failed', 
+        callId,
+        'failed',
         'none',
         { message: error.message, details: error.stack }
       );
@@ -492,7 +515,7 @@ app.post('/api/upload/init', optionalAuth, async (req, res) => {
   try {
     const { fileId, fileName, fileSize, totalChunks, mimeType } = req.body;
     const uploadId = `${fileId}-${Date.now()}`;
-    
+
     // Store upload metadata
     chunkedUploads.set(uploadId, {
       fileId,
@@ -503,15 +526,15 @@ app.post('/api/upload/init', optionalAuth, async (req, res) => {
       uploadedChunks: new Set(),
       createdAt: new Date()
     });
-    
+
     console.log(`🚀 Initialized chunked upload: ${uploadId} (${totalChunks} chunks)`);
-    
+
     res.json({
       success: true,
       uploadId,
       message: 'Chunked upload initialized'
     });
-    
+
   } catch (error) {
     console.error('❌ Failed to initialize chunked upload:', error);
     res.status(500).json({
@@ -526,57 +549,57 @@ app.post('/api/upload/chunk', optionalAuth, chunkUpload.single('chunk'), async (
   try {
     console.log('📦 Chunk upload request - Body:', req.body);
     console.log('📦 Chunk upload request - File:', req.file ? 'Present' : 'Missing');
-    
+
     const { uploadId, chunkIndex } = req.body;
-    
+
     if (!uploadId) {
       return res.status(400).json({
         error: 'Upload ID is required'
       });
     }
-    
+
     if (!req.file) {
       return res.status(400).json({
         error: 'No chunk file uploaded'
       });
     }
-    
+
     if (!chunkedUploads.has(uploadId)) {
       return res.status(404).json({
         error: 'Upload session not found'
       });
     }
-    
+
     // Move file from temp directory to proper uploadId directory
     const uploadMeta = chunkedUploads.get(uploadId);
     const targetDir = path.join('uploads', 'chunks', uploadId);
-    
+
     // Create target directory if it doesn't exist
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
-    
+
     // Debug logging
     console.log('📦 Source file path:', req.file.path);
     console.log('📦 Source file exists:', fs.existsSync(req.file.path));
-    
+
     // Move file to target directory with proper name
     const targetPath = path.join(targetDir, `chunk-${chunkIndex}`);
     console.log('📦 Target file path:', targetPath);
-    
+
     fs.renameSync(req.file.path, targetPath);
-    
+
     uploadMeta.uploadedChunks.add(parseInt(chunkIndex));
-    
+
     console.log(`📦 Uploaded chunk ${chunkIndex}/${uploadMeta.totalChunks} for ${uploadId}`);
-    
+
     res.json({
       success: true,
       chunkIndex: parseInt(chunkIndex),
       uploaded: uploadMeta.uploadedChunks.size,
       total: uploadMeta.totalChunks
     });
-    
+
   } catch (error) {
     console.error('❌ Chunk upload failed:', error);
     res.status(500).json({
@@ -590,15 +613,15 @@ app.post('/api/upload/chunk', optionalAuth, chunkUpload.single('chunk'), async (
 app.post('/api/upload/finalize', optionalAuth, async (req, res) => {
   try {
     const { uploadId, fileId } = req.body;
-    
+
     if (!chunkedUploads.has(uploadId)) {
       return res.status(404).json({
         error: 'Upload session not found'
       });
     }
-    
+
     const uploadMeta = chunkedUploads.get(uploadId);
-    
+
     // Verify all chunks are uploaded
     if (uploadMeta.uploadedChunks.size !== uploadMeta.totalChunks) {
       return res.status(400).json({
@@ -607,12 +630,12 @@ app.post('/api/upload/finalize', optionalAuth, async (req, res) => {
         expected: uploadMeta.totalChunks
       });
     }
-    
+
     console.log(`🔧 Finalizing chunked upload: ${uploadId}`);
-    
+
     // Combine chunks into final file
     const finalFilePath = await combineChunks(uploadId, uploadMeta);
-    
+
     // Extract user information for chunked upload
     const userEmail = req.user?.email || req.body.userEmail || req.headers['user-email'] || process.env.DEFAULT_USER_EMAIL;
     const userName = req.user?.fullName || req.body.userName || req.headers['user-name'] || 'User';
@@ -632,7 +655,7 @@ app.post('/api/upload/finalize', optionalAuth, async (req, res) => {
       userId,
       ipAddress: req.ip
     });
-    
+
     // Send upload completion notification to user's email
     setImmediate(() => {
       notificationService.sendUploadCompletionNotification(
@@ -647,13 +670,13 @@ app.post('/api/upload/finalize', optionalAuth, async (req, res) => {
     setImmediate(() => {
       processAudioAsync(call._id, finalFilePath);
     });
-    
+
     // Cleanup
     chunkedUploads.delete(uploadId);
     cleanupChunks(uploadId);
-    
+
     console.log(`✅ Chunked upload completed: ${call._id}`);
-    
+
     res.json({
       success: true,
       callId: call._id,
@@ -665,7 +688,7 @@ app.post('/api/upload/finalize', optionalAuth, async (req, res) => {
         uploadedAt: new Date().toISOString()
       }
     });
-    
+
   } catch (error) {
     console.error('❌ Failed to finalize upload:', error);
     res.status(500).json({
@@ -679,18 +702,18 @@ app.post('/api/upload/finalize', optionalAuth, async (req, res) => {
 app.post('/api/upload/cancel', async (req, res) => {
   try {
     const { uploadId } = req.body;
-    
+
     if (chunkedUploads.has(uploadId)) {
       chunkedUploads.delete(uploadId);
       cleanupChunks(uploadId);
       console.log(`🗑️ Cancelled chunked upload: ${uploadId}`);
     }
-    
+
     res.json({
       success: true,
       message: 'Upload cancelled'
     });
-    
+
   } catch (error) {
     console.error('❌ Failed to cancel upload:', error);
     res.status(500).json({
@@ -705,43 +728,43 @@ async function combineChunks(uploadId, uploadMeta) {
   const chunkDir = path.join('uploads', 'chunks', uploadId);
   const finalFileName = `${uploadId}-${uploadMeta.fileName}`;
   const finalFilePath = path.join('uploads', finalFileName);
-  
+
   console.log(`🔗 Combining ${uploadMeta.totalChunks} chunks for ${uploadId}`);
-  
+
   const writeStream = fs.createWriteStream(finalFilePath);
-  
+
   return new Promise((resolve, reject) => {
     let currentChunk = 0;
-    
+
     const writeNextChunk = () => {
       if (currentChunk >= uploadMeta.totalChunks) {
         writeStream.end();
         return;
       }
-      
+
       const chunkPath = path.join(chunkDir, `chunk-${currentChunk}`);
-      
+
       if (fs.existsSync(chunkPath)) {
         const readStream = fs.createReadStream(chunkPath);
         readStream.pipe(writeStream, { end: false });
-        
+
         readStream.on('end', () => {
           currentChunk++;
           writeNextChunk();
         });
-        
+
         readStream.on('error', reject);
       } else {
         reject(new Error(`Missing chunk: ${currentChunk}`));
       }
     };
-    
+
     writeStream.on('finish', () => {
       resolve(finalFilePath);
     });
-    
+
     writeStream.on('error', reject);
-    
+
     writeNextChunk();
   });
 }
@@ -749,7 +772,7 @@ async function combineChunks(uploadId, uploadMeta) {
 // Helper function to cleanup chunks
 function cleanupChunks(uploadId) {
   const chunkDir = path.join('uploads', 'chunks', uploadId);
-  
+
   if (fs.existsSync(chunkDir)) {
     fs.rmSync(chunkDir, { recursive: true, force: true });
     console.log(`🧹 Cleaned up chunks for ${uploadId}`);
@@ -773,7 +796,7 @@ setInterval(() => {
 app.get('/api/upload/status/:callId', optionalAuth, async (req, res) => {
   try {
     const { callId } = req.params;
-    
+
     // Validate ObjectId format
     if (!callId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ error: 'Invalid call ID format' });
@@ -814,9 +837,9 @@ app.get('/api/upload/status/:callId', optionalAuth, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error fetching status:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch processing status',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -825,7 +848,7 @@ app.get('/api/upload/status/:callId', optionalAuth, async (req, res) => {
 function getProcessingProgress(status, processingStage) {
   if (status === 'completed') return 100;
   if (status === 'failed') return 0;
-  
+
   switch (processingStage) {
     case 'none': return 10;
     case 'transcribing': return 30;
@@ -861,7 +884,7 @@ app.get('/api/calls', optionalAuth, async (req, res) => {
     };
 
     const result = await databaseService.getCalls(options);
-    
+
     // Transform calls for frontend
     const callsList = result.calls.map(call => ({
       id: call._id,
@@ -879,16 +902,16 @@ app.get('/api/calls', optionalAuth, async (req, res) => {
       sentiment: call.analysis?.insights?.sentiment?.overall || null
     }));
 
-    res.json({ 
+    res.json({
       calls: callsList,
-      pagination: result.pagination 
+      pagination: result.pagination
     });
 
   } catch (error) {
     console.error('❌ Error fetching calls:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch calls',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -897,7 +920,7 @@ app.get('/api/calls', optionalAuth, async (req, res) => {
 app.get('/api/calls/:callId', optionalAuth, async (req, res) => {
   try {
     const { callId } = req.params;
-    
+
     // Validate ObjectId format
     if (!callId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ error: 'Invalid call ID format' });
@@ -955,9 +978,9 @@ app.get('/api/calls/:callId', optionalAuth, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error fetching call:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch call details',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -966,7 +989,7 @@ app.get('/api/calls/:callId', optionalAuth, async (req, res) => {
 app.delete('/api/calls/:callId', optionalAuth, async (req, res) => {
   try {
     const { callId } = req.params;
-    
+
     // Validate ObjectId format
     if (!callId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ error: 'Invalid call ID format' });
@@ -977,17 +1000,17 @@ app.delete('/api/calls/:callId', optionalAuth, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error deleting call:', error);
-    
+
     // Handle 404 errors specifically
     if (error.status === 404 || error.message.includes('Call not found')) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Call not found or access denied'
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Failed to delete call',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -996,7 +1019,7 @@ app.delete('/api/calls/:callId', optionalAuth, async (req, res) => {
 app.get('/api/audio/:callId', optionalAuth, async (req, res) => {
   try {
     const { callId } = req.params;
-    
+
     // Validate ObjectId format
     if (!callId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ error: 'Invalid call ID format' });
@@ -1004,13 +1027,13 @@ app.get('/api/audio/:callId', optionalAuth, async (req, res) => {
 
     // Get call record to find file path
     const call = await databaseService.getCallById(callId, false, req.user?.userId);
-    
+
     if (!call) {
       return res.status(404).json({ error: 'Call not found' });
     }
 
     const filePath = call.filePath;
-    
+
     // Check if file exists
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Audio file not found on server' });
@@ -1024,7 +1047,7 @@ app.get('/api/audio/:callId', optionalAuth, async (req, res) => {
     // Set appropriate content type based on file extension
     const ext = path.extname(filePath).toLowerCase();
     let contentType = 'audio/mpeg'; // default
-    
+
     if (ext === '.wav') contentType = 'audio/wav';
     else if (ext === '.mp3') contentType = 'audio/mpeg';
     else if (ext === '.ogg') contentType = 'audio/ogg';
@@ -1035,22 +1058,22 @@ app.get('/api/audio/:callId', optionalAuth, async (req, res) => {
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-      
+
       if (start >= fileSize) {
         res.status(416).send('Requested range not satisfiable\n' + start + ' >= ' + fileSize);
         return;
       }
-      
+
       const chunksize = (end - start) + 1;
       const file = fs.createReadStream(filePath, { start, end });
-      
+
       res.writeHead(206, {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunksize,
         'Content-Type': contentType,
       });
-      
+
       file.pipe(res);
     } else {
       // Send entire file
@@ -1059,15 +1082,15 @@ app.get('/api/audio/:callId', optionalAuth, async (req, res) => {
         'Content-Type': contentType,
         'Accept-Ranges': 'bytes',
       });
-      
+
       fs.createReadStream(filePath).pipe(res);
     }
 
   } catch (error) {
     console.error('❌ Error serving audio file:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to serve audio file',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -1078,7 +1101,7 @@ app.post('/api/summarize', async (req, res) => {
     const { text, options = {} } = req.body;
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Text is required for summarization',
         details: 'Please provide a non-empty text string in the request body'
       });
@@ -1098,9 +1121,9 @@ app.post('/api/summarize', async (req, res) => {
 
   } catch (error) {
     console.error('Error in summarization:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Summarization failed',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -1111,8 +1134,8 @@ app.post('/api/summarize/quick', async (req, res) => {
     const { text } = req.body;
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
-      return res.status(400).json({ 
-        error: 'Text is required for quick summarization' 
+      return res.status(400).json({
+        error: 'Text is required for quick summarization'
       });
     }
 
@@ -1129,9 +1152,9 @@ app.post('/api/summarize/quick', async (req, res) => {
 
   } catch (error) {
     console.error('Error in quick summarization:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Quick summarization failed',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -1142,8 +1165,8 @@ app.post('/api/extract-actions', async (req, res) => {
     const { text } = req.body;
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
-      return res.status(400).json({ 
-        error: 'Text is required for action item extraction' 
+      return res.status(400).json({
+        error: 'Text is required for action item extraction'
       });
     }
 
@@ -1160,9 +1183,9 @@ app.post('/api/extract-actions', async (req, res) => {
 
   } catch (error) {
     console.error('Error in action item extraction:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Action item extraction failed',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -1189,13 +1212,13 @@ app.get('/api/dashboard/stats', async (req, res) => {
 app.post('/api/calls/search', optionalAuth, async (req, res) => {
   try {
     const { query, page = 1, limit = 10 } = req.body;
-    
+
     if (!query || query.trim().length === 0) {
       return res.status(400).json({ error: 'Search query is required' });
     }
 
     const results = await databaseService.searchCallsContent(query, { page, limit, userId: req.user?.userId });
-    
+
     res.json({
       success: true,
       results: results,
@@ -1232,13 +1255,13 @@ app.get('/api/admin/database/stats', async (req, res) => {
 app.post('/api/admin/database/cleanup', async (req, res) => {
   try {
     const { olderThanDays = 30, removeFailedCalls = true, dryRun = false } = req.body;
-    
+
     const result = await databaseService.cleanup({
       olderThanDays,
       removeFailedCalls,
       dryRun
     });
-    
+
     res.json({
       success: true,
       ...result,
@@ -1258,14 +1281,14 @@ app.get('/api/summarize/health', async (req, res) => {
   try {
     const summarizationService = require('./services/summarization');
     const healthStatus = await summarizationService.healthCheck();
-    
+
     res.json({
       service: 'Groq Summarization Service',
       ...healthStatus,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       service: 'Groq Summarization Service',
       status: 'error',
       message: error.message,
@@ -1293,7 +1316,7 @@ app.use((error, req, res, next) => {
       return res.status(400).json({ error: 'File too large. Maximum size is 50MB.' });
     }
   }
-  
+
   console.error('Unhandled error:', error);
   res.status(500).json({ error: 'Internal server error' });
 });
@@ -1306,7 +1329,7 @@ app.use('*', (req, res) => {
 // Create necessary directories
 function createDirectories() {
   const directories = ['uploads', 'uploads/chunks', 'uploads/chunks/temp'];
-  
+
   directories.forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -1320,14 +1343,18 @@ async function startServer() {
   try {
     // Create necessary directories
     createDirectories();
-    
+
     // Initialize database first
     await initializeDatabase();
-    
-    // Start task reminder scheduler
-    console.log('🔔 Starting task reminder scheduler...');
-    notificationService.startReminderScheduler();
-    
+
+    // Start task reminder scheduler (best-effort; DB might be intentionally unavailable in dev)
+    try {
+      console.log('🔔 Starting task reminder scheduler...');
+      notificationService.startReminderScheduler();
+    } catch (e) {
+      console.warn('⚠️ Task reminder scheduler failed to start:', e.message);
+    }
+
     // Start HTTP server
     app.listen(PORT, () => {
       console.log(`🚀 AI Call Intelligence API server is running on port ${PORT}`);

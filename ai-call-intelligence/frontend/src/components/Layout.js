@@ -13,7 +13,6 @@ import {
   Menu, 
   X,
   Brain,
-  Mic,
   MessageCircle,
   LogOut,
   User,
@@ -49,43 +48,45 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 lg:hidden"
+          className="fixed inset-0 z-40 lg:hidden backdrop-blur-sm bg-slate-900/20"
           onClick={() => setSidebarOpen(false)}
-        >
-          <div className="absolute inset-0 bg-gray-600 opacity-75"></div>
-        </div>
+        ></div>
       )}
 
       {/* Sidebar */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
+          fixed inset-y-0 left-0 z-50 w-64 
+          bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl
+          border-r border-white/20 dark:border-white/5
+          transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
+          shadow-2xl lg:shadow-none
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Brain className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between h-20 px-6 border-b border-white/20 dark:border-white/5">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20">
+              <Brain className="w-6 h-6 text-white" />
             </div>
-            <span className="text-lg font-semibold text-gray-900 dark:text-white">
-              AI Call Intel
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-indigo-600 dark:from-white dark:to-indigo-200">
+              Call Intel
             </span>
           </div>
           
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = isActivePath(item.href);
@@ -96,56 +97,55 @@ const Layout = ({ children }) => {
                 to={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={`
-                  sidebar-item
-                  ${active ? 'sidebar-item-active' : ''}
+                  sidebar-item group
+                  ${active ? 'sidebar-item-active shadow-lg shadow-primary-500/10' : ''}
                 `}
               >
-                <Icon className="w-5 h-5 mr-3" />
+                <Icon className={`w-5 h-5 mr-3 transition-colors ${active ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 group-hover:text-primary-500'}`} />
                 <span className="font-medium">{item.name}</span>
+                {active && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>
+                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Theme toggle and user info */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-white/20 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50 lg:mx-4 lg:mb-4 lg:rounded-2xl">
           <button
             onClick={toggleTheme}
-            className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+            className="flex items-center w-full px-4 py-3 text-sm text-slate-600 dark:text-slate-300 rounded-xl hover:bg-white/50 dark:hover:bg-white/5 transition-all duration-200 mb-2 border border-transparent hover:border-slate-200 dark:hover:border-white/5"
           >
             {isDarkMode ? (
               <>
-                <Sun className="w-5 h-5 mr-3" />
-                Light Mode
+                <Sun className="w-5 h-5 mr-3 text-amber-400" />
+                <span className="font-medium">Light Mode</span>
               </>
             ) : (
               <>
-                <Moon className="w-5 h-5 mr-3" />
-                Dark Mode
+                <Moon className="w-5 h-5 mr-3 text-indigo-500" />
+                <span className="font-medium">Dark Mode</span>
               </>
             )}
           </button>
           
-          <button
-            onClick={handleLogout}
-            className="flex items-center w-full px-3 py-2 mt-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-          >
-            <LogOut className="w-5 h-5 mr-3" />
-            Logout
-          </button>
-          
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+          <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-white/5">
+            <div className="flex items-center space-x-3 p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 rounded-full flex items-center justify-center border border-indigo-200 dark:border-indigo-500/30">
+                <User className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                   {user ? `${user.firstName} ${user.lastName}` : 'User'}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user?.email || 'user@example.com'}
-                </p>
+                <div 
+                  onClick={handleLogout}
+                  className="flex items-center text-xs text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors mt-0.5"
+                >
+                  <LogOut className="w-3 h-3 mr-1" />
+                  <span>Sign out</span>
+                </div>
               </div>
             </div>
           </div>
@@ -153,45 +153,52 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-col flex-1 lg:pl-0">
-        {/* Top navigation bar */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:hidden">
+      <div className="flex flex-col flex-1 lg:pl-0 h-full overflow-hidden relative z-0">
+        
+        {/* Top navigation bar (Mobile) */}
+        <div className="lg:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-white/20 dark:border-white/5 absolute top-0 left-0 right-0 z-30">
           <div className="flex items-center justify-between h-16 px-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
             >
               <Menu className="w-6 h-6" />
             </button>
             
             <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-primary-600 rounded flex items-center justify-center">
-                <Brain className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <Brain className="w-5 h-5 text-white" />
               </div>
-              <span className="font-semibold text-gray-900 dark:text-white">
-                AI Call Intel
+              <span className="font-bold text-slate-900 dark:text-white">
+                Call Intel
               </span>
             </div>
             
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
             >
               {isDarkMode ? (
-                <Sun className="w-5 h-5" />
+                <Sun className="w-5 h-5 text-amber-400" />
               ) : (
-                <Moon className="w-5 h-5" />
+                <Moon className="w-5 h-5 text-indigo-500" />
               )}
             </button>
           </div>
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto focus:outline-none">
-          <div className="py-6">
-            <div className="px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pt-16 lg:pt-0 scroll-smooth">
+          <div className="py-8">
+            <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
               {children}
             </div>
+          </div>
+          
+          {/* Background decoration elements */}
+          <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-primary-500/20 blur-[100px] animate-float"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/20 blur-[100px] animate-float opacity-70" style={{animationDelay: '2s'}}></div>
           </div>
         </main>
       </div>

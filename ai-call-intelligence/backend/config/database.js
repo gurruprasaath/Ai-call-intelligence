@@ -6,6 +6,7 @@
  */
 
 const mongoose = require('mongoose');
+const dns = require('dns');
 require('dotenv').config();
 
 class DatabaseConfig {
@@ -22,14 +23,10 @@ class DatabaseConfig {
         maxPoolSize: 10, // Maintain up to 10 socket connections
         serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
         socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-        // New URL parser and unified topology are enabled by default in Mongoose 6+
-        // include them for clarity and backwards compatibility where needed
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-
         // Additional settings for production
         retryWrites: true,
-        w: 'majority'
+        w: 'majority',
+        family: 4 // Force IPv4 to avoid potential IPv6 DNS issues
       }
     };
 
@@ -47,6 +44,8 @@ class DatabaseConfig {
     try {
   console.log('🔗 Connecting to MongoDB...');
   console.log(`📍 Database URI: ${this.getMaskedUri()}`);
+
+      this.applyDnsOverridesIfConfigured();
 
       // First try with full options
       try {
@@ -77,6 +76,8 @@ class DatabaseConfig {
 
     } catch (error) {
       console.error('❌ MongoDB connection failed:', error.message);
+
+      this.logConnectionTroubleshootingHints(error);
       
       // Try one more time with the absolute minimal config
       try {
@@ -120,7 +121,7 @@ class DatabaseConfig {
       port: mongoose.connection.port,
       name: mongoose.connection.name,
       models: Object.keys(mongoose.models),
-      collections: mongoose.connection.db ? Object.keys(mongoose.connection.db.collection()) : []
+      collections: Object.keys(mongoose.connection.collections || {})
     };
   }
 
@@ -129,6 +130,56 @@ class DatabaseConfig {
    */
   getMaskedUri() {
     return this.config.uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
+  }
+
+  /**
+   * Optional DNS overrides for mongodb+srv connections.
+   * Useful on networks where SRV lookups are blocked or broken.
+   *
+   * Env vars:
+   * - MONGODB_DNS_SERVERS=8.8.8.8,1.1.1.1
+   * - MONGODB_IPV4_FIRST=true
+   */
+  applyDnsOverridesIfConfigured() {
+    const uri = this.config.uri || '';
+    if (!uri.startsWith('mongodb+srv://')) return;
+
+    const dnsServers = process.env.MONGODB_DNS_SERVERS;
+    if (dnsServers) {
+      const servers = dnsServers
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if (servers.length > 0) {
+        try {
+          dns.setServers(servers);
+          console.log(`🌐 Using custom DNS servers for MongoDB SRV: ${servers.join(', ')}`);
+        } catch (e) {
+          console.warn('⚠️ Failed to apply custom DNS servers:', e.message);
+        }
+      }
+    }
+
+    if ((process.env.MONGODB_IPV4_FIRST || '').toLowerCase() === 'true') {
+      try {
+        dns.setDefaultResultOrder('ipv4first');
+        console.log('🌐 DNS result order set to ipv4first');
+      } catch (e) {
+        // Not supported on very old Node versions
+      }
+    }
+  }
+
+  logConnectionTroubleshootingHints(error) {
+    // Common Atlas issue: SRV DNS queries blocked/refused by network/DNS
+    if (error && (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') && error.syscall === 'querySrv') {
+      console.error('🧭 Hint: This looks like a DNS/SRV lookup failure for a mongodb+srv URI.');
+      console.error('   - Try running: nslookup -type=SRV _mongodb._tcp.<cluster-host>');
+      console.error('   - If SRV is blocked/refused, switch DNS (e.g. 8.8.8.8/1.1.1.1) or disable VPN/corporate DNS interception.');
+      console.error('   - Or set MONGODB_DNS_SERVERS=8.8.8.8,1.1.1.1 (and optionally MONGODB_IPV4_FIRST=true) and restart.');
+      console.error('   - For dev, you can also run local MongoDB and unset ATLAS_URI to use the localhost fallback.');
+    }
   }
 
   /**

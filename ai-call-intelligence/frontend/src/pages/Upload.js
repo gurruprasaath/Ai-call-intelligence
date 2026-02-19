@@ -5,7 +5,7 @@ import Auth from '../components/Auth';
 import { Classification } from '../components/ResultsDisplay';
 import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
-import { CheckCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, ArrowRight, Mic, Sparkles, Zap } from 'lucide-react';
 
 const Upload = () => {
   const { user, isAuthenticated } = useAuth();
@@ -61,39 +61,42 @@ const Upload = () => {
 
   if (uploadResult) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto animate-fade-in">
         {/* Success State */}
         <div className="text-center space-y-6">
-          <div className="flex items-center justify-center w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full">
-            <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+          <div className="relative flex items-center justify-center w-20 h-20 mx-auto">
+            <div className="absolute inset-0 bg-green-500/20 rounded-full animate-pulse-slow"></div>
+            <div className="relative flex items-center justify-center w-16 h-16 bg-green-500/10 rounded-full border border-green-500/20">
+              <CheckCircle className="w-8 h-8 text-green-500" />
+            </div>
           </div>
           
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 text-glow">
               Processing Complete!
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-slate-600 dark:text-slate-400">
               Your audio file has been successfully transcribed and analyzed.
             </p>
           </div>
 
           {/* Quick Summary */}
-          <div className="card p-6 text-left">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="card p-8 text-left border-l-4 border-l-green-500">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
               Quick Summary
             </h3>
             
             {uploadResult.data?.analysis?.summary && (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {uploadResult.data.analysis.summary.slice(0, 3).map((point, index) => (
                   <div key={index} className="flex items-start space-x-3">
-                    <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-gray-700 dark:text-gray-300">{point}</p>
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2.5 flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{point}</p>
                   </div>
                 ))}
                 {uploadResult.data.analysis.summary.length > 3 && (
-                  <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                    +{uploadResult.data.analysis.summary.length - 3} more insights...
+                  <p className="text-sm font-medium text-primary-500 mt-4 pl-4 border-l-2 border-primary-500/20">
+                    +{uploadResult.data.analysis.summary.length - 3} more insights available in full report
                   </p>
                 )}
               </div>
@@ -101,66 +104,64 @@ const Upload = () => {
 
             {/* Classification Display */}
             {uploadResult.data?.analysis?.classification && (
-              <div className="mt-6">
-                <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
+              <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700/50">
+                <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
                   Call Classification
                 </h4>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">
-                      {uploadResult.data.analysis.classification.category === 'Work' ? '💼' :
-                       uploadResult.data.analysis.classification.category === 'Family' ? '👨‍👩‍👧‍👦' :
-                       uploadResult.data.analysis.classification.category === 'Personal' ? '🧑' :
-                       uploadResult.data.analysis.classification.category === 'Education' ? '🎓' :
-                       uploadResult.data.analysis.classification.category === 'Healthcare' ? '🏥' :
-                       uploadResult.data.analysis.classification.category === 'Financial' ? '💰' :
-                       uploadResult.data.analysis.classification.category === 'Technical' ? '💻' :
-                       uploadResult.data.analysis.classification.category === 'Legal' ? '⚖️' : '💬'}
+                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                  <span className="text-2xl">
+                    {uploadResult.data.analysis.classification.category === 'Work' ? '💼' :
+                     uploadResult.data.analysis.classification.category === 'Family' ? '👨‍👩‍👧‍👦' :
+                     uploadResult.data.analysis.classification.category === 'Personal' ? '🧑' :
+                     uploadResult.data.analysis.classification.category === 'Education' ? '🎓' :
+                     uploadResult.data.analysis.classification.category === 'Healthcare' ? '🏥' :
+                     uploadResult.data.analysis.classification.category === 'Financial' ? '💰' :
+                     uploadResult.data.analysis.classification.category === 'Technical' ? '💻' :
+                     uploadResult.data.analysis.classification.category === 'Legal' ? '⚖️' : '💬'}
+                  </span>
+                  <div>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {uploadResult.data.analysis.classification.category}
                     </span>
-                    <div>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {uploadResult.data.analysis.classification.category}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
-                        ({Math.round((uploadResult.data.analysis.classification.confidence || 0) * 100)}% confidence)
-                      </span>
-                    </div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">
+                      ({Math.round((uploadResult.data.analysis.classification.confidence || 0) * 100)}% confidence)
+                    </span>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Key Stats */}
-            <div className="mt-6 grid grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+            <div className="mt-8 grid grid-cols-3 gap-4">
+              <div className="text-center p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                <p className="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-1">
                   {uploadResult.data?.analysis?.keyDecisions?.length || 0}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Decisions</p>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Decisions</p>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+              <div className="text-center p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
                   {uploadResult.data?.analysis?.keyPoints?.length || 0}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Key Points</p>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Key Points</p>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+              <div className="text-center p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                <p className="text-3xl font-bold text-pink-600 dark:text-pink-400 mb-1">
                   {uploadResult.data?.analysis?.actionItems?.length || 0}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Action Items</p>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Actions</p>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <button
               onClick={handleViewResults}
-              className="btn-primary inline-flex items-center space-x-2"
+              className="btn-primary inline-flex items-center space-x-2 px-8 py-3 text-lg shadow-lg shadow-primary-500/20"
             >
               <span>View Full Results</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-5 h-5" />
             </button>
             
             <button
@@ -169,7 +170,7 @@ const Upload = () => {
                 setSelectedFile(null);
                 setError(null);
               }}
-              className="btn-secondary"
+              className="px-8 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               Upload Another File
             </button>
@@ -180,13 +181,13 @@ const Upload = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4 text-glow">
           Upload Audio File
         </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+        <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
           Upload your conversation recording to get AI-powered insights including transcription, 
           key decisions, action items, and conversation analytics.
         </p>
@@ -196,62 +197,59 @@ const Upload = () => {
       <Auth />
 
       {/* Upload Component */}
-      <FileUpload
-        onFileSelect={handleFileSelect}
-        onUpload={handleUpload}
-        isUploading={isUploading}
-        uploadProgress={uploadProgress}
-        error={error}
-      />
+      <div className="relative z-10">
+        <FileUpload
+          onFileSelect={handleFileSelect}
+          onUpload={handleUpload}
+          isUploading={isUploading}
+          uploadProgress={uploadProgress}
+          error={error}
+        />
+      </div>
 
       {/* Processing Information */}
       {isUploading && (
-        <div className="mt-8 card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="card p-8 border-primary-500/30 shadow-lg shadow-primary-500/10">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center">
+            <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse mr-3"></div>
             Processing Your Audio...
           </h3>
           
           {/* Progress Bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+          <div className="mb-8">
+            <div className="flex justify-between text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
               <span>{progressMessage}</span>
-              <span>{uploadProgress}%</span>
+              <span className="text-primary-600 dark:text-primary-400">{uploadProgress}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
               <div 
-                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300 ease-in-out"
+                className="h-full bg-gradient-to-r from-primary-600 to-purple-600 relative overflow-hidden transition-all duration-300 ease-out"
                 style={{ width: `${uploadProgress}%` }}
-              ></div>
+              >
+                <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]"></div>
+              </div>
             </div>
           </div>
           
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${uploadProgress > 20 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                Uploading file...
-              </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${uploadProgress > 0 ? 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50' : 'text-slate-400'}`}>
+              <div className={`w-2 h-2 rounded-full ${uploadProgress > 0 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+              <span className="text-sm font-medium">Uploading file</span>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${uploadProgress > 50 ? 'bg-green-500' : uploadProgress > 20 ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                Transcribing audio with AI...
-              </span>
+            <div className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${uploadProgress > 20 ? 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50' : 'text-slate-400'}`}>
+              <div className={`w-2 h-2 rounded-full ${uploadProgress > 50 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : uploadProgress > 20 ? 'bg-primary-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+              <span className="text-sm font-medium">Transcribing audio</span>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${uploadProgress > 80 ? 'bg-green-500' : uploadProgress > 50 ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                Analyzing conversation...
-              </span>
+            <div className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${uploadProgress > 50 ? 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50' : 'text-slate-400'}`}>
+              <div className={`w-2 h-2 rounded-full ${uploadProgress > 80 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : uploadProgress > 50 ? 'bg-primary-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+              <span className="text-sm font-medium">Analyzing conversation</span>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${uploadProgress > 95 ? 'bg-green-500' : uploadProgress > 80 ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                Generating insights...
-              </span>
+            <div className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${uploadProgress > 80 ? 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50' : 'text-slate-400'}`}>
+              <div className={`w-2 h-2 rounded-full ${uploadProgress > 95 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : uploadProgress > 80 ? 'bg-primary-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+              <span className="text-sm font-medium">Generating insights</span>
             </div>
           </div>
         </div>
@@ -259,45 +257,39 @@ const Upload = () => {
 
       {/* Features Info */}
       {!isUploading && !selectedFile && (
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg mx-auto mb-4 flex items-center justify-center">
-              <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-10 0a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2m-5 8l2 2 4-4" />
-              </svg>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
+          <div className="card p-6 text-center hover:border-primary-500/30 transition-colors group">
+            <div className="w-14 h-14 bg-primary-500/10 rounded-2xl mx-auto mb-5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <Mic className="w-7 h-7 text-primary-600 dark:text-primary-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
               Automatic Transcription
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               AI-powered speech-to-text with speaker identification and high accuracy
             </p>
           </div>
           
-          <div className="text-center">
-            <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg mx-auto mb-4 flex items-center justify-center">
-              <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 00-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+          <div className="card p-6 text-center hover:border-purple-500/30 transition-colors group">
+            <div className="w-14 h-14 bg-purple-500/10 rounded-2xl mx-auto mb-5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <Sparkles className="w-7 h-7 text-purple-600 dark:text-purple-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
               Smart Analysis
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               Extract key decisions, action items, and conversation insights automatically
             </p>
           </div>
           
-          <div className="text-center">
-            <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg mx-auto mb-4 flex items-center justify-center">
-              <svg className="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+          <div className="card p-6 text-center hover:border-pink-500/30 transition-colors group">
+            <div className="w-14 h-14 bg-pink-500/10 rounded-2xl mx-auto mb-5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <Zap className="w-7 h-7 text-pink-600 dark:text-pink-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
               Instant Results
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               Get comprehensive conversation analytics in seconds, not hours
             </p>
           </div>

@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 
 // API Base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// API Base URL - Ensure no double /api suffix
+const RAW_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_BASE_URL = RAW_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
 
 // Auth Context
 const AuthContext = createContext();
@@ -28,7 +30,7 @@ const authReducer = (state, action) => {
         loading: false,
         error: null
       };
-    
+
     case 'LOGIN_FAILURE':
       return {
         ...state,
@@ -38,7 +40,7 @@ const authReducer = (state, action) => {
         loading: false,
         error: action.payload
       };
-    
+
     case 'LOGOUT':
       return {
         ...state,
@@ -48,7 +50,7 @@ const authReducer = (state, action) => {
         loading: false,
         error: null
       };
-    
+
     case 'LOAD_USER_SUCCESS':
       return {
         ...state,
@@ -58,7 +60,7 @@ const authReducer = (state, action) => {
         initialized: true,
         error: null
       };
-    
+
     case 'LOAD_USER_FAILURE':
       return {
         ...state,
@@ -69,25 +71,25 @@ const authReducer = (state, action) => {
         initialized: true,
         error: null
       };
-    
+
     case 'SET_LOADING':
       return {
         ...state,
         loading: action.payload
       };
-    
+
     case 'CLEAR_ERROR':
       return {
         ...state,
         error: null
       };
-    
+
     case 'UPDATE_USER':
       return {
         ...state,
         user: { ...state.user, ...action.payload }
       };
-    
+
     default:
       return state;
   }
@@ -261,11 +263,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
+
       if (token) {
         try {
           console.log('🔍 Auto-loading user with existing token...');
-          
+
           // Use direct API call instead of authService for now
           const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
             headers: {
@@ -273,15 +275,15 @@ export const AuthProvider = ({ children }) => {
               'Content-Type': 'application/json'
             }
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             console.log('✅ Auto-login successful:', data.user.email);
-            
+
             // Ensure token is stored in both locations
             localStorage.setItem('token', token);
             localStorage.setItem('authToken', token);
-            
+
             dispatch({
               type: 'LOAD_USER_SUCCESS',
               payload: data.user
@@ -309,130 +311,134 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Auth actions
-  const login = async (credentials) => {
+  const login = useCallback(async (credentials) => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    
+
     const result = await authService.login(credentials);
-    
+
     if (result.success) {
       const { user, token } = result.data;
-      
+
       // Store token in both localStorage keys for compatibility
       localStorage.setItem('token', token);
       localStorage.setItem('authToken', token);
-      
+
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { user, token }
       });
-      
+
       return { success: true };
     } else {
       dispatch({
         type: 'LOGIN_FAILURE',
         payload: result.error
       });
-      
+
       return { success: false, error: result.error };
     }
-  };
+  }, []);
 
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    
+
     const result = await authService.register(userData);
-    
+
     if (result.success) {
       const { user, token } = result.data;
-      
+
       // Store token in localStorage
       localStorage.setItem('token', token);
-      
+
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { user, token }
       });
-      
+
       return { success: true };
     } else {
       dispatch({
         type: 'LOGIN_FAILURE',
         payload: result.error
       });
-      
+
       return { success: false, error: result.error };
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     const token = localStorage.getItem('token');
-    
-    if (token) {
-      await authService.logout(token);
-    }
-    
-    // Remove tokens from localStorage
+
+    // Remove tokens from localStorage IMMEDIATELY for instant logout
     localStorage.removeItem('token');
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    
-    dispatch({ type: 'LOGOUT' });
-  };
 
-  const updateProfile = async (updateData) => {
+    // Update state immediately
+    dispatch({ type: 'LOGOUT' });
+
+    // Make API call in background without waiting (fire and forget)
+    if (token) {
+      authService.logout(token).catch(err => {
+        console.warn('Logout API call failed (non-critical):', err);
+      });
+    }
+  }, []);
+
+  const updateProfile = useCallback(async (updateData) => {
     const token = localStorage.getItem('token');
-    
+
     if (!token) {
       return { success: false, error: 'No authentication token found' };
     }
-    
+
     const result = await authService.updateProfile(token, updateData);
-    
+
     if (result.success) {
       dispatch({
         type: 'UPDATE_USER',
         payload: result.data.user
       });
-      
+
       return { success: true };
     } else {
       return { success: false, error: result.error };
     }
-  };
+  }, []);
 
-  const changePassword = async (passwordData) => {
+  const changePassword = useCallback(async (passwordData) => {
     const token = localStorage.getItem('token');
-    
+
     if (!token) {
       return { success: false, error: 'No authentication token found' };
     }
-    
-    const result = await authService.changePassword(token, passwordData);
-    
-    return result;
-  };
 
-  const clearError = () => {
+    const result = await authService.changePassword(token, passwordData);
+
+    return result;
+  }, []);
+
+  const clearError = useCallback(() => {
     dispatch({ type: 'CLEAR_ERROR' });
-  };
+  }, []);
 
   // Check if user is authenticated
-  const isAuthenticated = () => {
+  const isAuthenticated = useCallback(() => {
     return state.isAuthenticated && state.token && state.user;
-  };
+  }, [state.isAuthenticated, state.token, state.user]);
 
   // Get current user
-  const getCurrentUser = () => {
+  const getCurrentUser = useCallback(() => {
     return state.user;
-  };
+  }, [state.user]);
 
   // Get auth token
-  const getToken = () => {
+  const getToken = useCallback(() => {
     return state.token || localStorage.getItem('token');
-  };
+  }, [state.token]);
 
   // Context value
-  const value = {
+  const value = useMemo(() => ({
     ...state,
     login,
     register,
@@ -443,7 +449,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: isAuthenticated(),
     getCurrentUser,
     getToken
-  };
+  }), [state, login, register, logout, updateProfile, changePassword, clearError, isAuthenticated, getCurrentUser, getToken]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -455,11 +461,11 @@ export const AuthProvider = ({ children }) => {
 // Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
+
   return context;
 };
 
@@ -467,7 +473,7 @@ export const useAuth = () => {
 export const withAuth = (WrappedComponent) => {
   return (props) => {
     const { isAuthenticated, loading } = useAuth();
-    
+
     if (loading) {
       return (
         <div className="flex justify-center items-center min-h-screen">
@@ -475,13 +481,13 @@ export const withAuth = (WrappedComponent) => {
         </div>
       );
     }
-    
+
     if (!isAuthenticated) {
       // Redirect to login page
       window.location.href = '/login';
       return null;
     }
-    
+
     return <WrappedComponent {...props} />;
   };
 };

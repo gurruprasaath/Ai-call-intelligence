@@ -51,10 +51,10 @@ const Auth = () => {
   // Show loading state while checking authentication
   if (!initialized) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center justify-center">
-          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
-          <span className="text-gray-600 dark:text-gray-400">Checking authentication...</span>
+      <div className="card p-8 mb-6 flex items-center justify-center min-h-[200px]">
+        <div className="flex flex-col items-center">
+          <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <span className="text-slate-600 dark:text-slate-400 font-medium">Checking authentication...</span>
         </div>
       </div>
     );
@@ -63,28 +63,28 @@ const Auth = () => {
   // If user is already logged in, show welcome message
   if (isAuthenticated && user) {
     return (
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 mb-6">
+      <div className="card p-8 mb-6 border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-900/10">
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
-                Logged in as {user.firstName} {user.lastName}
+            <div className="flex items-center mb-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                Welcome back, {user.firstName}
               </h3>
             </div>
-            <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-              📧 {user.email}
+            <p className="text-sm text-slate-600 dark:text-slate-400 flex items-center">
+              <span className="opacity-75 mr-2">📧</span> {user.email}
             </p>
-            <p className="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center">
+            <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full bg-green-100/50 dark:bg-green-900/30 text-xs font-medium text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
               <span className="mr-1">✅</span>
-              Email notifications enabled - you'll receive updates about your uploads
-            </p>
+              Notifications Active
+            </div>
           </div>
           <button
             onClick={logout}
-            className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 shadow-sm"
+            className="px-4 py-2 text-sm bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 rounded-lg transition-colors duration-200 border border-red-200 dark:border-red-900/50"
           >
-            Logout
+            Sign Out
           </button>
         </div>
       </div>
@@ -93,24 +93,24 @@ const Auth = () => {
 
   // Show login/register form
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          {isLogin ? 'Login' : 'Register'} for Email Notifications
+    <div className="card p-8 mb-6">
+      <div className="mb-8 text-center">
+        <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600 dark:from-primary-400 dark:to-indigo-400 mb-2">
+          {isLogin ? 'Welcome Back' : 'Create Account'}
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-slate-600 dark:text-slate-400">
           {isLogin 
-            ? 'Login to receive email notifications about your uploads'
-            : 'Create an account to get personalized email notifications'
+            ? 'Access your unified communication intelligence platform'
+            : 'Join the platform to unlock advanced call analytics'
           }
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {!isLogin && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
                 First Name
               </label>
               <input
@@ -119,11 +119,12 @@ const Auth = () => {
                 value={formData.firstName}
                 onChange={handleChange}
                 required={!isLogin}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="input-field"
+                placeholder="John"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
                 Last Name
               </label>
               <input
@@ -132,15 +133,16 @@ const Auth = () => {
                 value={formData.lastName}
                 onChange={handleChange}
                 required={!isLogin}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="input-field"
+                placeholder="Doe"
               />
             </div>
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Email
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
+            Email Address
           </label>
           <input
             type="email"
@@ -148,12 +150,13 @@ const Auth = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="input-field"
+            placeholder="name@company.com"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
             Password
           </label>
           <input
@@ -162,41 +165,42 @@ const Auth = () => {
             value={formData.password}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="input-field"
+            placeholder="••••••••"
           />
         </div>
 
         {error && (
-          <div className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-2 rounded">
-            {error}
+          <div className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-900/30 flex items-center">
+            <span className="mr-2">⚠️</span> {error}
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        <div className="pt-2">
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 mr-2 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
+            className="btn-primary w-full flex justify-center items-center py-3 text-lg shadow-primary-500/25"
           >
-            {submitting ? 'Processing...' : (isLogin ? 'Login' : 'Register')}
+            {submitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                Processing...
+              </>
+            ) : (isLogin ? 'Sign In' : 'Create Account')}
           </button>
-          
+        </div>
+        
+        <div className="text-center pt-2">
           <button
             type="button"
             onClick={() => setIsLogin(!isLogin)}
-            className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+            className="text-primary-600 dark:text-primary-400 text-sm hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
           >
-            {isLogin ? 'Need account?' : 'Have account?'}
+            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>
         </div>
       </form>
-
-      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-        <p className="text-xs text-blue-700 dark:text-blue-300">
-          💡 <strong>Why register?</strong> Get email notifications for upload completion, 
-          transcription ready, and analysis complete directly to your inbox!
-        </p>
-      </div>
     </div>
   );
 };

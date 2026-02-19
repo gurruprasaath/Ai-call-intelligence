@@ -21,7 +21,8 @@ class NotificationService {
     this.emailTransporter = this.setupEmailTransporter();
     this.inAppNotifications = new Map(); // Store in-app notifications
     this.emailEnabled = process.env.EMAIL_NOTIFICATIONS !== 'false'; // Default to enabled
-    
+    this._warnedDbNotConnected = false;
+
     console.log(`📧 Email Notifications: ${this.emailEnabled ? 'ENABLED' : 'DISABLED'}`);
     if (!this.emailEnabled) {
       console.log('💡 To enable emails, set EMAIL_NOTIFICATIONS=true in .env file');
@@ -42,7 +43,8 @@ class NotificationService {
         service: 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS // Use app password for Gmail
+          user: process.env.EMAIL_USER,
+          pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '') // Remove spaces from app password
         },
         // Enhanced timeout and connection settings for better reliability
         connectionTimeout: 15000, // 15 seconds
@@ -64,7 +66,7 @@ class NotificationService {
         } catch (error) {
           console.warn('⚠️ Email SMTP connection failed:', error.message);
           console.warn('📧 Email notifications will be attempted but may fail');
-          
+
           if (error.code === 'EAUTH') {
             console.warn('🔐 Authentication issue - check Gmail app password');
           } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
@@ -88,7 +90,7 @@ class NotificationService {
       console.log('📧 Email notifications disabled - skipping');
       return false;
     }
-    
+
     if (!this.emailTransporter) {
       console.warn('📧 Email transporter not configured - skipping email notification');
       this.logNotificationFallback(mailOptions);
@@ -98,20 +100,20 @@ class NotificationService {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`📧 Sending email (attempt ${attempt}/${maxRetries}) to: ${mailOptions.to}`);
-        
+
         // Set a timeout for the email send operation
         const emailPromise = this.emailTransporter.sendMail(mailOptions);
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Email send timeout')), 10000);
         });
-        
+
         const result = await Promise.race([emailPromise, timeoutPromise]);
         console.log('✅ Email sent successfully:', result.messageId);
         return true;
-        
+
       } catch (error) {
         console.warn(`❌ Email send attempt ${attempt} failed:`, error.message);
-        
+
         // Special handling for common errors
         if (error.code === 'EAUTH') {
           console.error('🔐 Authentication failed - check Gmail credentials');
@@ -121,20 +123,20 @@ class NotificationService {
         } else if (error.code === 'ENOTFOUND') {
           console.warn('🌐 DNS resolution failed - check internet connection');
         }
-        
+
         if (attempt === maxRetries) {
           console.error('📧 All email send attempts failed - logging as fallback');
           this.logNotificationFallback(mailOptions);
           return false;
         }
-        
+
         // Wait before retry (exponential backoff)
         const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s...
         console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-    
+
     return false;
   }
 
@@ -158,8 +160,18 @@ class NotificationService {
     try {
       console.log('🔔 Processing pending task reminders...');
 
+      // If the DB isn't connected (e.g. DB_REQUIRED=false dev mode), skip quietly.
+      const readyState = Task?.db?.readyState;
+      if (readyState !== 1) {
+        if (!this._warnedDbNotConnected) {
+          console.warn('⚠️ Skipping reminders: database not connected');
+          this._warnedDbNotConnected = true;
+        }
+        return { success: false, skipped: true, reason: 'db-not-connected' };
+      }
+
       const now = new Date();
-      
+
       // Find tasks with pending reminders
       const tasksWithReminders = await Task.find({
         status: { $in: ['pending', 'in-progress'] },
@@ -172,7 +184,7 @@ class NotificationService {
       for (const task of tasksWithReminders) {
         for (let i = 0; i < task.reminders.length; i++) {
           const reminder = task.reminders[i];
-          
+
           if (!reminder.sent && new Date(reminder.scheduledFor) <= now) {
             await this.sendReminder(task, reminder, i);
             processedCount++;
@@ -181,7 +193,7 @@ class NotificationService {
       }
 
       console.log(`✅ Processed ${processedCount} pending reminders`);
-      
+
       return {
         success: true,
         processedCount
@@ -203,7 +215,7 @@ class NotificationService {
     try {
       // Get user information
       const user = await User.findOne({ userId: task.assignedTo });
-      
+
       if (!user && task.assignedTo !== 'Unassigned') {
         console.warn(`⚠️ User not found for task ${task.taskId}: ${task.assignedTo}`);
         return;
@@ -259,8 +271,8 @@ class NotificationService {
     }
 
     const isOverdue = timeUntilDeadline.isOverdue;
-    const subject = isOverdue 
-      ? `🚨 OVERDUE: ${task.title}` 
+    const subject = isOverdue
+      ? `🚨 OVERDUE: ${task.title}`
       : `⏰ Reminder: ${task.title} - Due ${timeUntilDeadline.formatted}`;
 
     const htmlContent = this.generateEmailTemplate(task, user, timeUntilDeadline);
@@ -322,10 +334,10 @@ class NotificationService {
         <div class="content">
             <p>Hi ${user.firstName},</p>
             
-            ${timeUntilDeadline.isOverdue 
-              ? `<p><strong>This task is now overdue!</strong> Please review and update the status as soon as possible.</p>`
-              : `<p>This is a friendly reminder about an upcoming task deadline.</p>`
-            }
+            ${timeUntilDeadline.isOverdue
+        ? `<p><strong>This task is now overdue!</strong> Please review and update the status as soon as possible.</p>`
+        : `<p>This is a friendly reminder about an upcoming task deadline.</p>`
+      }
             
             <div class="task-card">
                 <h2>${task.title}</h2>
@@ -339,11 +351,11 @@ class NotificationService {
                 
                 <div class="deadline-info ${timeUntilDeadline.isOverdue ? '' : timeUntilDeadline.daysUntil <= 1 ? 'due-soon' : 'on-time'}">
                     <strong>⏰ Deadline:</strong> ${new Date(task.deadline).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}
                     <br>
                     <strong>Status:</strong> ${timeUntilDeadline.formatted}
                 </div>
@@ -389,7 +401,7 @@ class NotificationService {
       id: `reminder_${task.taskId}_${Date.now()}`,
       type: 'task-reminder',
       title: timeUntilDeadline.isOverdue ? '🚨 Task Overdue' : '⏰ Task Due Soon',
-      message: timeUntilDeadline.isOverdue 
+      message: timeUntilDeadline.isOverdue
         ? `"${task.title}" is now overdue!`
         : `"${task.title}" is due ${timeUntilDeadline.formatted}`,
       taskId: task.taskId,
@@ -403,7 +415,7 @@ class NotificationService {
     if (!this.inAppNotifications.has(userId)) {
       this.inAppNotifications.set(userId, []);
     }
-    
+
     this.inAppNotifications.get(userId).push(notification);
 
     // Keep only last 50 notifications per user
@@ -610,7 +622,7 @@ class NotificationService {
       const email = userEmail || process.env.DEFAULT_USER_EMAIL || 'user@example.com';
 
       // Truncate transcription for email (first 500 characters)
-      const transcriptionPreview = transcription.text.length > 500 
+      const transcriptionPreview = transcription.text.length > 500
         ? transcription.text.substring(0, 500) + '...'
         : transcription.text;
 
@@ -850,7 +862,7 @@ class NotificationService {
       // Notify the person who assigned the task
       if (task.assignedBy && task.assignedBy !== completedBy) {
         const assignerUser = await User.findOne({ userId: task.assignedBy });
-        
+
         if (assignerUser?.email && this.emailTransporter) {
           const mailOptions = {
             from: {
@@ -904,7 +916,7 @@ class NotificationService {
       };
 
       const priorityColor = priorityColors[task.priority] || '#6b7280';
-      
+
       // Calculate time until deadline
       const timeUntilDeadline = this.getTimeUntilDeadline(task.deadline);
 
@@ -955,11 +967,11 @@ class NotificationService {
                 
                 <div class="deadline-info">
                     <strong>⏰ Deadline:</strong> ${new Date(task.deadline).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })}
                     <br>
                     <strong>Status:</strong> ${timeUntilDeadline.formatted}
                 </div>
