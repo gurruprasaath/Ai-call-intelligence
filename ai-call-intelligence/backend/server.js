@@ -33,7 +33,8 @@ app.use(express.static('public'));
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    const dir = process.env.VERCEL === '1' ? '/tmp' : 'uploads/';
+    cb(null, dir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -45,7 +46,7 @@ const storage = multer.diskStorage({
 const chunkStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     // Use a temporary chunks directory, we'll organize by uploadId later
-    const tempChunkDir = path.join('uploads', 'chunks', 'temp');
+    const tempChunkDir = process.env.VERCEL === '1' ? path.join('/tmp', 'chunks', 'temp') : path.join('uploads', 'chunks', 'temp');
 
     // Create directory if it doesn't exist
     if (!fs.existsSync(tempChunkDir)) {
@@ -1328,12 +1329,13 @@ app.use('*', (req, res) => {
 
 // Create necessary directories
 function createDirectories() {
+  if (process.env.VERCEL === '1') return; // Skip folder creation on Vercel due to read-only filesystem
   const directories = ['uploads', 'uploads/chunks', 'uploads/chunks/temp'];
 
   directories.forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`📁 Created directory: ${dir}`);
+      console.log(`\ud83d\udcc1 Created directory: ${dir}`);
     }
   });
 }
@@ -1349,26 +1351,37 @@ async function startServer() {
 
     // Start task reminder scheduler (best-effort; DB might be intentionally unavailable in dev)
     try {
-      console.log('🔔 Starting task reminder scheduler...');
+      console.log('\ud83d\udd14 Starting task reminder scheduler...');
       notificationService.startReminderScheduler();
     } catch (e) {
-      console.warn('⚠️ Task reminder scheduler failed to start:', e.message);
+      console.warn('\u26a0\ufe0f Task reminder scheduler failed to start:', e.message);
     }
 
     // Start HTTP server
     app.listen(PORT, () => {
-      console.log(`🚀 AI Call Intelligence API server is running on port ${PORT}`);
-      console.log(`📁 Uploads directory: ${path.resolve('uploads')}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-      console.log(`📊 Dashboard stats: http://localhost:${PORT}/api/dashboard/stats`);
-      console.log(`🔍 MongoDB URI: ${databaseConfig.getMaskedUri()}`);
-      console.log(`📧 Task notifications and reminders are active`);
+      console.log(`\ud83d\ude80 AI Call Intelligence API server is running on port ${PORT}`);
+      console.log(`\ud83d\udcc1 Uploads directory: ${path.resolve('uploads')}`);
+      console.log(`\ud83d\udd17 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`\ud83d\udcca Dashboard stats: http://localhost:${PORT}/api/dashboard/stats`);
+      console.log(`\ud83d\udd0d MongoDB URI: ${databaseConfig.getMaskedUri()}`);
+      console.log(`\ud83d\udce7 Task notifications and reminders are active`);
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
+    console.error('\u274c Failed to start server:', error.message);
     process.exit(1);
   }
 }
 
-// Start the server
-startServer();
+// Start the server or export for Vercel
+if (process.env.VERCEL !== '1') {
+  startServer();
+} else {
+  // Simple unhandled promise rejection wrapper for Vercel Serverless
+  // Vercel serverless exports must be functions or express app instances.
+  module.exports = async (req, res) => {
+    if (!databaseConfig.isConnected) {
+      await initializeDatabase();
+    }
+    return app(req, res);
+  };
+}
